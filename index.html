@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Santa Marina — Acompanhamento de Solicitações</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#141b2d; --panel2:#1b2436; --border:#2a3550;
+    --text:#e8ecf5; --muted:#93a0bd; --accent:#3b82f6;
+    --ok:#22c55e; --ok-bg:#123322; --warn:#f5b942; --warn-bg:#3a2e0f;
+    --bad:#ef4444; --bad-bg:#3a1414; --gray:#64748b; --gray-bg:#242c3f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;background:var(--bg);z-index:10}
+  header h1{font-size:19px;margin:0;font-weight:700}
+  header .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer}
+  .btn:hover{opacity:.9}
+  .btn.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:18px 28px 0}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+  .card .n{font-size:22px;font-weight:700}
+  .card .l{font-size:11.5px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.03em}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;padding:18px 28px 8px;align-items:center}
+  .toolbar input, .toolbar select{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px}
+  .toolbar input{flex:1;min-width:180px}
+  main{padding:8px 28px 40px}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);border-radius:10px;overflow:hidden}
+  thead th{position:sticky;top:64px;background:var(--panel2);text-align:left;padding:10px 10px;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border);white-space:nowrap}
+  tbody td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tbody tr:hover{background:#182238}
+  .badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .b-ok{background:var(--ok-bg);color:var(--ok)}
+  .b-warn{background:var(--warn-bg);color:var(--warn)}
+  .b-bad{background:var(--bad-bg);color:var(--bad)}
+  .b-gray{background:var(--gray-bg);color:var(--gray)}
+  .material{max-width:260px}
+  .actions{white-space:nowrap}
+  .icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px}
+  .icon-btn:hover{color:var(--text)}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;z-index:100}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px;width:520px;max-width:92vw;max-height:88vh;overflow:auto}
+  .modal h2{margin:0 0 14px;font-size:16px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field input, .field select, .field textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:7px;font-size:13.5px;font-family:inherit}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+  .empty{color:var(--muted);text-align:center;padding:30px}
+  footer{color:var(--muted);font-size:11.5px;padding:0 28px 24px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Santa Marina — Acompanhamento de Solicitações</h1>
+    <div class="sub">Base: relatório Betha Cloud (Secretaria). Atualizado manualmente.</div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button class="btn secondary" onclick="exportCSV()">Exportar CSV</button>
+    <button class="btn" onclick="openModal()">+ Nova solicitação</button>
+  </div>
+</header>
+
+<div class="cards" id="cards"></div>
+
+<div class="toolbar">
+  <input id="search" placeholder="Buscar por nº, material ou fornecedor..." oninput="render()">
+  <select id="fStatus" onchange="render()">
+    <option value="">Status: todos</option>
+  </select>
+  <select id="fEntregue" onchange="render()">
+    <option value="">Entregue: todos</option>
+    <option>Sim</option><option>Não</option><option>Parcial</option><option>Cancelado</option>
+  </select>
+  <select id="fPrazo" onchange="render()">
+    <option value="">Prazo: todos</option>
+    <option value="ATRASADO">Atrasado</option>
+    <option value="NO PRAZO">No prazo</option>
+    <option value="OK">OK</option>
+    <option value="-">Cancelado</option>
+  </select>
+</div>
+
+<main>
+  <table>
+    <thead>
+      <tr>
+        <th>Nº Solicitação</th><th>Status</th><th>Nº AF</th><th>Material</th><th>Fornecedor</th>
+        <th>Valor</th><th>Data Envio</th><th>Envio Tesouraria</th><th>Previsão</th><th>Entregue</th><th>Prazo</th><th>Obs.</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="emptyMsg" class="empty" style="display:none">Nenhuma solicitação encontrada.</div>
+</main>
+
+<footer>Dados salvos localmente neste navegador. Se abrir em outro dispositivo/navegador, os dados não se repetem automaticamente.</footer>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle">Nova solicitação</h2>
+    <input type="hidden" id="editId">
+    <div class="row2">
+      <div class="field"><label>Nº Solicitação</label><input id="f_id" placeholder="0000/2026"></div>
+      <div class="field"><label>Nº Autorização (AF)</label><input id="f_af"></div>
+    </div>
+    <div class="field"><label>Status</label><input id="f_status" placeholder="ex: 5 - Aguardando Fornecimento Total da AF"></div>
+    <div class="field"><label>Material</label><textarea id="f_material" rows="2"></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Fornecedor</label><input id="f_fornecedor"></div>
+      <div class="field"><label>Valor (R$)</label><input id="f_valor" type="number" step="0.01"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Data Envio</label><input id="f_dataEnvio" type="date"></div>
+      <div class="field"><label>Data Envio Tesouraria</label><input id="f_dataTesouraria" type="date"></div>
+    </div>
+    <div class="field"><label>Previsão de Chegada</label><input id="f_previsao" type="date"></div>
+    <div class="field"><label>Entregue</label>
+      <select id="f_entregue"><option>Não</option><option>Sim</option><option>Parcial</option><option>Cancelado</option></select>
+    </div>
+    <div class="field"><label>Observações</label><textarea id="f_obs" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveRow()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE_DATA = [{"id": "2661/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252520/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "MC COMÉRCIO DE ALIMENTOS E TRANSPORTES LTDA", "valor": 32560.0, "dataEnvio": "2026-08-07", "previsao": "2026-08-22", "entregue": "Não", "obs": ""}, {"id": "2660/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "COMERCIAL HERZOG LTDA", "valor": 60280.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2659/2026", "status": "0.3 - Aguardando Desvinculação de Saldo", "af": null, "material": "PRODUTOS DE HIGIENE E USO PESSOAL - LEI 14.133/2021", "fornecedor": "SK MATERIAIS PARA ESCRITORIO LTDA", "valor": 78570.0, "dataEnvio": null, "previsao": null, "entregue": "Não", "obs": ""}, {"id": "2656/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252526/2026", "material": "ELETRODOMÉSTICOS E CORRELATOS - LEI 14.133/2021", "fornecedor": "MICROFORT INFORMATICA LTDA", "valor": 12349.0, "dataEnvio": "2026-08-07", "previsao": "2026-09-06", "entregue": "Não", "obs": ""}, {"id": "2655/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "250232/2026", "material": "ELETRODOMÉSTICOS E CORRELATOS - LEI 14.133/2021", "fornecedor": "GO VENDAS ELETRONICAS LTDA", "valor": 13900.0, "dataEnvio": "2026-08-06", "previsao": "2026-09-05", "entregue": "Não", "obs": ""}, {"id": "2654/2026", "status": "6 - AF com Execução Total a Comprovar", "af": "252527/2026", "material": "ELETRODOMÉSTICOS E CORRELATOS - LEI 14.133/2021", "fornecedor": "2B DISTRIBUIDORA LTDA", "valor": 17952.0, "dataEnvio": "2026-08-07", "previsao": "2026-09-06", "entregue": "Não", "obs": ""}, {"id": "2653/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252528/2026", "material": "MATERIAIS PARA HIGIENIZAÇÃO E LIMPEZA - LEI 14.133/2021", "fornecedor": "GOEDERT LTDA", "valor": 15600.0, "dataEnvio": "2026-08-07", "previsao": "2026-08-25", "entregue": "Não", "obs": ""}, {"id": "2652/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252529/2026", "material": "MATERIAIS AMBULATORIAIS E INSUMOS HOSPITALARES - LEI 14.133/2021", "fornecedor": "ALTERMED MATERIAL MEDICO HOSPITALAR LTDA", "valor": 15800.0, "dataEnvio": "2026-08-07", "previsao": "2026-08-22", "entregue": "Não", "obs": ""}, {"id": "2651/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252533/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "MH COMERCIO LTDA", "valor": 16030.0, "dataEnvio": "2026-08-07", "previsao": "2026-09-06", "entregue": "Não", "obs": ""}, {"id": "2650/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252537/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "OTHALA COMERCIO LTDA", "valor": 15190.0, "dataEnvio": "2026-08-07", "previsao": "2026-09-06", "entregue": "Não", "obs": ""}, {"id": "2649/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252544/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "RS DISTRIBUIDORA E COMERCIO LTDA", "valor": 17680.0, "dataEnvio": "2026-08-07", "previsao": "2026-09-07", "entregue": "Não", "obs": ""}, {"id": "2648/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252518/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "FEMANN COMERCIO E SERVICOS LTDA", "valor": 40277.0, "dataEnvio": "2026-08-07", "previsao": "2026-09-09", "entregue": "Não", "obs": ""}, {"id": "2523/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252546/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "JLM DISTRIBUIDORA BR LTDA", "valor": 41440.0, "dataEnvio": "2026-08-07", "previsao": "2026-08-25", "entregue": "Não", "obs": ""}, {"id": "2455/2026", "status": "6 - AF com Execução Total a Comprovar", "af": "241807/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "RS DISTRIBUIDORA E COMERCIO LTDA", "valor": 214800.0, "dataEnvio": "2026-07-30", "previsao": "2026-08-15", "entregue": "Não", "obs": ""}, {"id": "2454/2026", "status": "0.3 - Aguardando Desvinculação de Saldo", "af": null, "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "JLM DISTRIBUIDORA BR LTDA", "valor": 1437768.0, "dataEnvio": null, "previsao": null, "entregue": "Não", "obs": ""}, {"id": "2453/2026", "status": "1 - Aguardando Empenhamento", "af": null, "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "ESFERA ATACADISTA LTDA", "valor": 258240.0, "dataEnvio": null, "previsao": null, "entregue": "Não", "obs": ""}, {"id": "2348/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "PAPÉIS PARA HIGIENE PESSOAL E USO DOMÉSTICO (COMPLEMENTAR) - LEI 14.133/2021", "fornecedor": "GAMBA CONEXOES COMERCIO ATACADISTA DE ALIMENTOS LTDA", "valor": 32485.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2090/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "EQUIPAMENTOS DE PROTEÇÃO INDIVIDUAL E COLETIVA - LEI 14.133/2021", "fornecedor": "MH COMERCIO LTDA", "valor": 39228.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2089/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "BIG BALL SPORTS MATERIAL ESPORTIVO LTDA - ME", "valor": 364920.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2088/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "ATTLAS SPORTS LTDA", "valor": 140994.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2087/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "ATTLAS SPORTS LTDA", "valor": 17904.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2086/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "NEXT ESPORTES LTDA", "valor": 209397.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2085/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "MYR COMERCIO DE ARTIGOS PEDAGOGICOS LTDA", "valor": 124500.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2084/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "POLISPORT ARTIGOS ESPORTIVOS E CONFECÇÕES LTDA", "valor": 103032.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "2083/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "235249/2026", "material": "ÁGUAS MINERAIS - LEI 14.133/2021", "fornecedor": "GAMBA CONEXOES COMERCIO ATACADISTA DE ALIMENTOS LTDA", "valor": 555600.0, "dataEnvio": "2026-07-27", "previsao": "2026-08-11", "entregue": "Não", "obs": ""}, {"id": "2082/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "183368/2026", "material": "PRODUTOS DE HIGIENE E USO PESSOAL - LEI 14.133/2021", "fornecedor": "SEBOLD INDÚSTRIA DE COSMÉTICOS LTDA", "valor": 13992.0, "dataEnvio": "2026-06-15", "previsao": "2026-06-30", "entregue": "Sim", "obs": ""}, {"id": "2055/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "195492/2026", "material": "PNEUS E CORRELATOS - LEI 14.133/2021", "fornecedor": "PNEULOG COMÉRCIO DE PNEUMATICOS LTDA", "valor": 159200.0, "dataEnvio": "2026-06-24", "previsao": "2026-07-24", "entregue": "Sim", "obs": ""}, {"id": "2007/2026", "status": "6 - AF com Execução Total a Comprovar", "af": "235250/2026", "material": "CADERNOS, PAPÉIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "SK MATERIAIS PARA ESCRITORIO LTDA", "valor": 12698.0, "dataEnvio": "2026-07-27", "previsao": "2026-08-12", "entregue": "Não", "obs": ""}, {"id": "2006/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "190422/2026", "material": "PAPÉIS A4 - LEI 14.133/2021", "fornecedor": "DICAPEL PAPEIS E EMBALAGENS LTDA", "valor": 215500.0, "dataEnvio": "2026-06-19", "previsao": "2026-07-07", "entregue": "Sim", "obs": ""}, {"id": "1869/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "180880/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "SPOTECH INFORMATICA CORAL LTDA", "valor": 35690.0, "dataEnvio": "2026-06-11", "previsao": "2026-06-30", "entregue": "Sim", "obs": ""}, {"id": "1792/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "CADERNOS, PAPÉIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "INFOTRIZ COMERCIAL LTDA", "valor": 59800.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1791/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "CADERNOS, PAPÉIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "JM PAPELARIA LTDA", "valor": 12411.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1775/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "190419/2026", "material": "EQUIPAMENTOS DE REDE DE DADOS E CORRELATOS - LEI 14.133/2021 (RENOVADO)", "fornecedor": "IRD PRODUTOS DE INFORMATICA LTDA", "valor": 99996.0, "dataEnvio": "2026-06-19", "previsao": "2026-07-19", "entregue": "Sim", "obs": ""}, {"id": "1585/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252567/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "EDUARDO GUERRA DO CARMO", "valor": 1563570.0, "dataEnvio": "2026-08-07", "previsao": "2026-08-25", "entregue": "Não", "obs": ""}, {"id": "1584/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "BRINQUEDOLANDIA COMERCIO DE ARTIGOS INFANTIS LTDA", "valor": 367954.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1583/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "252571/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "EDUARDO GUERRA DO CARMO", "valor": 1382910.0, "dataEnvio": "2026-08-07", "previsao": "2026-08-25", "entregue": "Não", "obs": ""}, {"id": "1582/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "131505/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "ALLY COMERCIO DE PRODUTOS E EQUIPAMENTOS LTDA", "valor": 20580.0, "dataEnvio": "2026-04-28", "previsao": "2026-05-28", "entregue": "Sim", "obs": ""}, {"id": "1581/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "190414/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "MH COMERCIO LTDA", "valor": 15840.0, "dataEnvio": "2026-06-19", "previsao": "2026-07-19", "entregue": "Sim", "obs": ""}, {"id": "1580/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "SOMA ATACADO LTDA", "valor": 3770.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1525/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "180881/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "OTHALA COMERCIO LTDA", "valor": 195930.0, "dataEnvio": "2026-06-11", "previsao": "2026-06-27", "entregue": "Sim", "obs": ""}, {"id": "1502/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "119783/2026", "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "POLISPORT ARTIGOS ESPORTIVOS E CONFECÇÕES LTDA", "valor": 85200.0, "dataEnvio": "2026-04-16", "previsao": "2026-05-17", "entregue": "Sim", "obs": ""}, {"id": "1494/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "131867/2026", "material": "EQUIPAMENTOS DE INFORMÁTICA, ELETRÔNICOS E CORRELATOS - LEI 14.133/2021 (RENOVADO)", "fornecedor": "SOMA ATACADO LTDA", "valor": 36900.0, "dataEnvio": "2026-04-28", "previsao": "2026-05-29", "entregue": "Não", "obs": ""}, {"id": "1398/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "131865/2026", "material": "EQUIPAMENTOS DE INFORMÁTICA, ELETRÔNICOS E CORRELATOS - LEI 14.133/2021 (RENOVADO)", "fornecedor": "SPOTECH INFORMATICA CORAL LTDA", "valor": 235840.0, "dataEnvio": "2026-04-28", "previsao": "2026-05-28", "entregue": "Sim", "obs": ""}, {"id": "1287/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "107883/2026", "material": "ÁLCOOL EM GEL E LÍQUIDO - LEI 14.133/2021", "fornecedor": "JT MEDICAMENTOS LTDA", "valor": 26950.0, "dataEnvio": "2026-04-08", "previsao": "2026-04-23", "entregue": "Sim", "obs": ""}, {"id": "1067/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096616/2026", "material": "MATERIAIS DESCARTÁVEIS - LEI 14.133/2021", "fornecedor": "LDM COMERCIAL DISTRIBUIDORA LTDA", "valor": 16500.0, "dataEnvio": "2026-03-27", "previsao": "2026-04-11", "entregue": "Sim", "obs": ""}, {"id": "1066/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096590/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "RS DISTRIBUIDORA E COMERCIO LTDA", "valor": 171000.0, "dataEnvio": "2026-03-27", "previsao": "2026-04-13", "entregue": "Sim", "obs": ""}, {"id": "1065/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "131593/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "NSC COMERCIO DE ALIMENTOS LTDA", "valor": 583200.0, "dataEnvio": "2026-04-28", "previsao": "2026-05-13", "entregue": "Sim", "obs": ""}, {"id": "1064/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096605/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "JLM DISTRIBUIDORA BR LTDA", "valor": 489552.0, "dataEnvio": "2026-03-27", "previsao": "2026-04-14", "entregue": "Sim", "obs": ""}, {"id": "1063/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "117946/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "ESFERA ATACADISTA LTDA", "valor": 204440.0, "dataEnvio": "2026-04-15", "previsao": "2026-04-30", "entregue": "Sim", "obs": ""}, {"id": "1061/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "089374/2026", "material": "PAPÉIS PARA HIGIENE PESSOAL E USO DOMÉSTICO - LEI 14.133/2021", "fornecedor": "JM PAPELARIA LTDA", "valor": 10074.0, "dataEnvio": "2026-03-20", "previsao": "2026-04-04", "entregue": "Sim", "obs": ""}, {"id": "1060/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096611/2026", "material": "MATERIAIS DESCARTÁVEIS - LEI 14.133/2021", "fornecedor": "OTHALA COMERCIO LTDA", "valor": 2280.0, "dataEnvio": "2026-03-27", "previsao": "2026-04-11", "entregue": "Sim", "obs": ""}, {"id": "1059/2026", "status": "9 - AF Rescindida", "af": "160876/2026", "material": "MATERIAIS DESCARTÁVEIS - LEI 14.133/2021", "fornecedor": "JLM DISTRIBUIDORA BR LTDA", "valor": 11005.0, "dataEnvio": "2026-05-22", "previsao": "2026-06-09", "entregue": "Cancelado", "obs": ""}, {"id": "1058/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "CADERNOS, PAPÉIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "JM PAPELARIA LTDA", "valor": 12411.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1057/2026", "status": "9 - AF Rescindida", "af": "089393/2026", "material": "MATERIAIS DESCARTÁVEIS - LEI 14.133/2021", "fornecedor": "ALPHA GLOBAL COMERCIO LTDA", "valor": 10200.0, "dataEnvio": "2026-03-20", "previsao": "2026-04-07", "entregue": "Cancelado", "obs": ""}, {"id": "1056/2026", "status": "1 - Aguardando Empenhamento", "af": null, "material": "CADERNOS, PAPÉIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "INFOTRIZ COMERCIAL LTDA", "valor": 69080.0, "dataEnvio": null, "previsao": null, "entregue": "Não", "obs": ""}, {"id": "1055/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "089385/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "RS DISTRIBUIDORA E COMERCIO LTDA", "valor": 11700.0, "dataEnvio": "2026-03-20", "previsao": "2026-04-06", "entregue": "Sim", "obs": ""}, {"id": "1054/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "089442/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "JLM DISTRIBUIDORA BR LTDA", "valor": 37476.0, "dataEnvio": "2026-03-20", "previsao": "2026-04-07", "entregue": "Sim", "obs": ""}, {"id": "1053/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "089425/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "ESFERA ATACADISTA LTDA", "valor": 115325.0, "dataEnvio": "2026-03-20", "previsao": "2026-04-04", "entregue": "Sim", "obs": ""}, {"id": "1052/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "089405/2026", "material": "ALIMENTOS NÃO PERECÍVEIS E CORRELATOS - LEI 14.133/2021", "fornecedor": "MC COMÉRCIO DE ALIMENTOS E TRANSPORTES LTDA", "valor": 57850.0, "dataEnvio": "2026-03-20", "previsao": "2026-04-04", "entregue": "Sim", "obs": ""}, {"id": "1051/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "131527/2026", "material": "PAPÉIS PARA HIGIENE PESSOAL E USO DOMÉSTICO - LEI 14.133/2021", "fornecedor": "GAMBA CONEXOES COMERCIO ATACADISTA DE ALIMENTOS LTDA", "valor": 122925.0, "dataEnvio": "2026-04-28", "previsao": "2026-05-13", "entregue": "Sim", "obs": ""}, {"id": "1033/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096401/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "EDUARDO GUERRA DO CARMO", "valor": 32250.0, "dataEnvio": "2026-03-27", "previsao": "2026-04-11", "entregue": "Sim", "obs": ""}, {"id": "1032/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096089/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "BRINQUEDOLANDIA COMERCIO DE ARTIGOS INFANTIS LTDA", "valor": 27940.0, "dataEnvio": "2026-03-26", "previsao": "2026-04-11", "entregue": "Sim", "obs": ""}, {"id": "1031/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "SPOTECH INFORMATICA CORAL LTDA", "valor": 53635.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1030/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096088/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "A.F DISTRIBUIDORA E COMERCIO LTDA", "valor": 15550.0, "dataEnvio": "2026-03-26", "previsao": "2026-04-10", "entregue": "Sim", "obs": ""}, {"id": "1029/2026", "status": "6 - AF com Execução Total a Comprovar", "af": "241813/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "TACCUINO DISTRIBUIDORA DE MATERIAIS LTDA", "valor": 12750.0, "dataEnvio": "2026-07-30", "previsao": "2026-08-14", "entregue": "Não", "obs": ""}, {"id": "1028/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "190425/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "PRINTSUL COMERCIO ATACADISTA LTDA", "valor": 47002.0, "dataEnvio": "2026-06-19", "previsao": "2026-07-04", "entregue": "Sim", "obs": ""}, {"id": "1027/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "099071/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "JM PAPELARIA LTDA", "valor": 38295.0, "dataEnvio": "2026-03-30", "previsao": "2026-04-14", "entregue": "Sim", "obs": ""}, {"id": "1026/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "DARLU INDÚSTRIA TÊXTIL LTDA", "valor": 39100.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1025/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "096087/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "OTHALA COMERCIO LTDA", "valor": 28420.0, "dataEnvio": "2026-03-26", "previsao": "2026-04-11", "entregue": "Sim", "obs": ""}, {"id": "1024/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "091946/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "LOPES LIMPEZA LTDA", "valor": 10238.0, "dataEnvio": "2026-03-24", "previsao": "2026-04-14", "entregue": "Sim", "obs": ""}, {"id": "1023/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "117927/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "INFOTRIZ COMERCIAL LTDA", "valor": 12700.0, "dataEnvio": "2026-04-15", "previsao": "2026-04-30", "entregue": "Sim", "obs": ""}, {"id": "1022/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "118226/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "EDUARDO GUERRA DO CARMO", "valor": 12320.0, "dataEnvio": "2026-04-16", "previsao": "2026-05-01", "entregue": "Sim", "obs": ""}, {"id": "1021/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "2B DISTRIBUIDORA LTDA", "valor": 42308.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "1020/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "117906/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "J D COMERCIO ATACADISTA LTDA", "valor": 17875.0, "dataEnvio": "2026-04-15", "previsao": "2026-05-01", "entregue": "Sim", "obs": ""}, {"id": "1019/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "117851/2026", "material": "ARTIGOS MÉDICO HOSPITALARES, ODONTOLÓGICOS E DE FISIOTERAPIA - LEI 14.133/2021", "fornecedor": "ALTERMED MATERIAL MEDICO HOSPITALAR LTDA", "valor": 1424400.0, "dataEnvio": "2026-04-15", "previsao": "2026-05-15", "entregue": "Sim", "obs": ""}, {"id": "0971/2026", "status": "5 - Aguardando Fornecimento Total da AF", "af": "246814/2026", "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "BIG BALL SPORTS MATERIAL ESPORTIVO LTDA - ME", "valor": 199455.0, "dataEnvio": "2026-08-04", "previsao": "2026-09-04", "entregue": "Não", "obs": ""}, {"id": "0970/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "180882/2026", "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "BIG BALL SPORTS MATERIAL ESPORTIVO LTDA - ME", "valor": 146267.0, "dataEnvio": "2026-06-11", "previsao": "2026-07-15", "entregue": "Sim", "obs": ""}, {"id": "0939/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "071440/2026", "material": "MATERIAIS PARA FISIOTERAPIA, PRÁTICAS INTEGRATIVAS E COMPLEMENTARES EM SAÚDE E CORRELATOS - LEI 14.133/2021", "fornecedor": "ATTLAS SPORTS LTDA", "valor": 15998.0, "dataEnvio": "2026-03-09", "previsao": "2026-03-24", "entregue": "Sim", "obs": ""}, {"id": "0938/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS PARA FISIOTERAPIA, PRÁTICAS INTEGRATIVAS E COMPLEMENTARES EM SAÚDE E CORRELATOS - LEI 14.133/2021", "fornecedor": "K.S ARTIGOS ESPORTIVOS LTDA", "valor": 180684.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "0937/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "092024/2026", "material": "MATERIAIS PARA FISIOTERAPIA, PRÁTICAS INTEGRATIVAS E COMPLEMENTARES EM SAÚDE E CORRELATOS - LEI 14.133/2021", "fornecedor": "ATTLAS SPORTS LTDA", "valor": 18100.0, "dataEnvio": "2026-03-24", "previsao": "2026-04-08", "entregue": "Sim", "obs": ""}, {"id": "0936/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "131481/2026", "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "NEXT ESPORTES LTDA", "valor": 72000.0, "dataEnvio": "2026-04-28", "previsao": "2026-05-28", "entregue": "Sim", "obs": ""}, {"id": "0935/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "077152/2026", "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "BIG BALL SPORTS MATERIAL ESPORTIVO LTDA - ME", "valor": 1493640.0, "dataEnvio": "2026-03-12", "previsao": "2026-04-11", "entregue": "Sim", "obs": ""}, {"id": "0932/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "071474/2026", "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "TREVENZA SOLUCOES LTDA", "valor": 112740.0, "dataEnvio": "2026-03-09", "previsao": "2026-04-08", "entregue": "Sim", "obs": ""}, {"id": "0931/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "TRAUM ARTIGOS ESPORTIVOS LTDA", "valor": 64950.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "0930/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS ESPORTIVOS - LEI 14.133/2021", "fornecedor": "OTHALA COMERCIO LTDA", "valor": 53780.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "0911/2026", "status": "7 - Autorização de Fornecimento com recebimento provisório", "af": "070401/2026", "material": "AÇÚCARES E ADOÇANTES - LEI 14.133/2021", "fornecedor": "PLANALTO COMERCIO E TRANSPORTES DE ALIMENTOS LTDA", "valor": 20990.0, "dataEnvio": "2026-03-06", "previsao": "2026-03-22", "entregue": "Parcial", "obs": ""}, {"id": "0705/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "VIRTUAL SUPRIMENTOS LTDA", "valor": 161000.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "0702/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "101125/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "PRINTSUL COMERCIO ATACADISTA LTDA", "valor": 10728.0, "dataEnvio": "2026-03-31", "previsao": "2026-04-21", "entregue": "Sim", "obs": ""}, {"id": "0701/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "071434/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "OTHALA COMERCIO LTDA", "valor": 463220.0, "dataEnvio": "2026-03-09", "previsao": "2026-03-24", "entregue": "Sim", "obs": ""}, {"id": "0700/2026", "status": "10 - Solicitação Cancelada", "af": null, "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "EDUARDO GUERRA DO CARMO", "valor": 3261472.0, "dataEnvio": null, "previsao": null, "entregue": "Cancelado", "obs": ""}, {"id": "0699/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "052058/2026", "material": "MATERIAIS DE EXPEDIENTE, ESCOLAR E DE ARTESANATO - LEI 14.133/2021", "fornecedor": "J D COMERCIO ATACADISTA LTDA", "valor": 167250.0, "dataEnvio": "2026-02-23", "previsao": "2026-03-11", "entregue": "Sim", "obs": ""}, {"id": "0680/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "051097/2026", "material": "UTENSÍLIOS DE COZINHA - LEI 14.133/2021", "fornecedor": "COMERCIAL HERZOG LTDA", "valor": 15000.0, "dataEnvio": "2026-02-23", "previsao": "2026-03-26", "entregue": "Sim", "obs": ""}, {"id": "0679/2026", "status": "8 - Autorização de Fornecimento com recebimento definitivo", "af": "070458/2026", "material": "MATERIAIS AMBULATORIAIS E INSUMOS HOSPITALARES - LEI 14.133/2021", "fornecedor": "ALTERMED MATERIAL MEDICO HOSPITALAR LTDA", "valor": 19160.0, "dataEnvio": "2026-03-06", "previsao": "2026-03-24", "entregue": "Sim", "obs": ""}];
+
+const STORAGE_KEY = "santaMarinaData";
+
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){ try { return JSON.parse(raw); } catch(e){} }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(BASE_DATA));
+  return JSON.parse(JSON.stringify(BASE_DATA));
+}
+function saveData(data){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+let DATA = loadData();
+
+function fmtDate(iso){
+  if(!iso) return "—";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+function fmtMoney(v){
+  if(v===null || v===undefined || v==="") return "—";
+  return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function prazoInfo(row){
+  if(row.entregue === "Sim") return {label:"OK", cls:"b-ok"};
+  if(row.entregue === "Cancelado") return {label:"—", cls:"b-gray"};
+  if(!row.previsao) return {label:"NO PRAZO", cls:"b-warn"};
+  const today = new Date(); today.setHours(0,0,0,0);
+  const prev = new Date(row.previsao+"T00:00:00");
+  if(prev < today) return {label:"ATRASADO", cls:"b-bad"};
+  return {label:"NO PRAZO", cls:"b-warn"};
+}
+function entregueBadge(v){
+  const map = {"Sim":"b-ok","Não":"b-gray","Parcial":"b-warn","Cancelado":"b-bad"};
+  return `<span class="badge ${map[v]||'b-gray'}">${v}</span>`;
+}
+
+function populateStatusFilter(){
+  const sel = document.getElementById('fStatus');
+  const current = sel.value;
+  const statuses = [...new Set(DATA.map(r=>r.status).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Status: todos</option>' + statuses.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('');
+  sel.value = statuses.includes(current) ? current : "";
+}
+
+function render(){
+  populateStatusFilter();
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const fEnt = document.getElementById('fEntregue').value;
+  const fPrazo = document.getElementById('fPrazo').value;
+  const fStatus = document.getElementById('fStatus').value;
+
+  let rows = DATA.filter(r=>{
+    if(q && !( (r.id||"").toLowerCase().includes(q) || (r.material||"").toLowerCase().includes(q) || (r.fornecedor||"").toLowerCase().includes(q) )) return false;
+    if(fEnt && r.entregue !== fEnt) return false;
+    if(fPrazo && prazoInfo(r).label !== fPrazo) return false;
+    if(fStatus && r.status !== fStatus) return false;
+    return true;
+  });
+
+  // cards
+  const total = DATA.length;
+  const entregues = DATA.filter(r=>r.entregue==="Sim").length;
+  const atrasados = DATA.filter(r=>prazoInfo(r).label==="ATRASADO").length;
+  const cancelados = DATA.filter(r=>r.entregue==="Cancelado").length;
+  const valorEntregue = DATA.reduce((s,r)=> s + (r.entregue==="Sim" ? (Number(r.valor)||0) : 0), 0);
+  const valorSolicitado = DATA.reduce((s,r)=> s + (r.entregue!=="Cancelado" ? (Number(r.valor)||0) : 0), 0);
+  document.getElementById('cards').innerHTML = `
+    <div class="card"><div class="n">${total}</div><div class="l">Solicitações</div></div>
+    <div class="card"><div class="n" style="color:var(--ok)">${entregues}</div><div class="l">Entregues</div></div>
+    <div class="card"><div class="n" style="color:var(--bad)">${atrasados}</div><div class="l">Atrasadas</div></div>
+    <div class="card"><div class="n" style="color:var(--gray)">${cancelados}</div><div class="l">Canceladas</div></div>
+    <div class="card"><div class="n">${fmtMoney(valorEntregue)}</div><div class="l">Valor entregue</div></div>
+    <div class="card"><div class="n">${fmtMoney(valorSolicitado)}</div><div class="l">Valor solicitado (ñ cancelado)</div></div>
+  `;
+
+  const tbody = document.getElementById('tbody');
+  document.getElementById('emptyMsg').style.display = rows.length? "none":"block";
+  tbody.innerHTML = rows.map(r=>{
+    const p = prazoInfo(r);
+    return `<tr>
+      <td><strong>${r.id||""}</strong></td>
+      <td>${r.status||""}</td>
+      <td>${r.af||"—"}</td>
+      <td class="material">${r.material||""}</td>
+      <td>${r.fornecedor||""}</td>
+      <td>${fmtMoney(r.valor)}</td>
+      <td>${fmtDate(r.dataEnvio)}</td>
+      <td>${fmtDate(r.dataTesouraria)}</td>
+      <td>${fmtDate(r.previsao)}</td>
+      <td>${entregueBadge(r.entregue)}</td>
+      <td><span class="badge ${p.cls}">${p.label}</span></td>
+      <td>${r.obs||""}</td>
+      <td class="actions">
+        <button class="icon-btn" title="Editar" onclick="openModal('${encodeURIComponent(r.id)}')">✎</button>
+        <button class="icon-btn" title="Excluir" onclick="deleteRow('${encodeURIComponent(r.id)}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function openModal(id){
+  document.getElementById('modalBg').classList.add('open');
+  if(id){
+    const row = DATA.find(r=>r.id===decodeURIComponent(id));
+    document.getElementById('modalTitle').textContent = "Editar solicitação";
+    document.getElementById('editId').value = row.id;
+    document.getElementById('f_id').value = row.id;
+    document.getElementById('f_id').disabled = true;
+    document.getElementById('f_af').value = row.af||"";
+    document.getElementById('f_status').value = row.status||"";
+    document.getElementById('f_material').value = row.material||"";
+    document.getElementById('f_fornecedor').value = row.fornecedor||"";
+    document.getElementById('f_valor').value = row.valor||"";
+    document.getElementById('f_dataEnvio').value = row.dataEnvio||"";
+    document.getElementById('f_dataTesouraria').value = row.dataTesouraria||"";
+    document.getElementById('f_previsao').value = row.previsao||"";
+    document.getElementById('f_entregue').value = row.entregue||"Não";
+    document.getElementById('f_obs').value = row.obs||"";
+  } else {
+    document.getElementById('modalTitle').textContent = "Nova solicitação";
+    document.getElementById('editId').value = "";
+    ['f_id','f_af','f_status','f_material','f_fornecedor','f_valor','f_dataEnvio','f_dataTesouraria','f_previsao','f_obs'].forEach(id=>document.getElementById(id).value="");
+    document.getElementById('f_id').disabled = false;
+    document.getElementById('f_entregue').value = "Não";
+  }
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+function saveRow(){
+  const editId = document.getElementById('editId').value;
+  const newRow = {
+    id: document.getElementById('f_id').value.trim(),
+    af: document.getElementById('f_af').value.trim(),
+    status: document.getElementById('f_status').value.trim(),
+    material: document.getElementById('f_material').value.trim(),
+    fornecedor: document.getElementById('f_fornecedor').value.trim(),
+    valor: parseFloat(document.getElementById('f_valor').value) || null,
+    dataEnvio: document.getElementById('f_dataEnvio').value || null,
+    dataTesouraria: document.getElementById('f_dataTesouraria').value || null,
+    previsao: document.getElementById('f_previsao').value || null,
+    entregue: document.getElementById('f_entregue').value,
+    obs: document.getElementById('f_obs').value.trim()
+  };
+  if(!newRow.id){ alert("Informe o número da solicitação."); return; }
+
+  if(editId){
+    const idx = DATA.findIndex(r=>r.id===editId);
+    if(idx>-1) DATA[idx] = newRow;
+  } else {
+    if(DATA.some(r=>r.id===newRow.id)){ alert("Já existe uma solicitação com esse número."); return; }
+    DATA.unshift(newRow);
+  }
+  saveData(DATA);
+  closeModal();
+  render();
+}
+
+function deleteRow(id){
+  const realId = decodeURIComponent(id);
+  if(!confirm(`Excluir a solicitação ${realId}?`)) return;
+  DATA = DATA.filter(r=>r.id!==realId);
+  saveData(DATA);
+  render();
+}
+
+function exportCSV(){
+  const headers = ["Nº Solicitação","Status","Nº AF","Material","Fornecedor","Valor","Data Envio","Data Envio Tesouraria","Previsão de Chegada","Entregue","Situação do Prazo","Observações"];
+  const lines = [headers.join(";")];
+  DATA.forEach(r=>{
+    const p = prazoInfo(r).label;
+    const vals = [r.id,r.status,r.af,r.material,r.fornecedor,r.valor,fmtDate(r.dataEnvio),fmtDate(r.dataTesouraria),fmtDate(r.previsao),r.entregue,p,r.obs]
+      .map(v=> `"${(v===null||v===undefined?"":String(v)).replace(/"/g,'""')}"`);
+    lines.push(vals.join(";"));
+  });
+  const blob = new Blob(["﻿"+lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = "santa_marina.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+render();
+</script>
+</body>
+</html>
